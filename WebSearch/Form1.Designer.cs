@@ -36,11 +36,11 @@
             MainTextBox.BackColor = Color.Black;
             MainTextBox.BorderStyle = BorderStyle.None;
             MainTextBox.ForeColor = Color.White;
-            MainTextBox.Location = new Point(33, 27);
+            MainTextBox.Location = new Point(12, 12);
             MainTextBox.Multiline = false;
             MainTextBox.Name = "MainTextBox";
             MainTextBox.ScrollBars = RichTextBoxScrollBars.None;
-            MainTextBox.Size = new Size(1029, 31);
+            MainTextBox.Size = new Size(989, 46);
             MainTextBox.TabIndex = 0;
             MainTextBox.Text = "";
             MainTextBox.KeyDown += MainTextBox_KeyDown;
@@ -50,7 +50,7 @@
             AutoScaleDimensions = new SizeF(11F, 28F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.Black;
-            ClientSize = new Size(1100, 89);
+            ClientSize = new Size(1013, 56);
             ControlBox = false;
             Controls.Add(MainTextBox);
             Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
