@@ -1,6 +1,6 @@
 ﻿namespace WebSearch
 {
-    partial class Form1
+    partial class WebSearch
     {
         /// <summary>
         ///  Required designer variable.
@@ -40,12 +40,12 @@
             MainTextBox.Multiline = false;
             MainTextBox.Name = "MainTextBox";
             MainTextBox.ScrollBars = RichTextBoxScrollBars.None;
-            MainTextBox.Size = new Size(989, 46);
+            MainTextBox.Size = new Size(1000, 40);
             MainTextBox.TabIndex = 0;
             MainTextBox.Text = "";
             MainTextBox.KeyDown += MainTextBox_KeyDown;
             // 
-            // Form1
+            // WebSearch
             // 
             AutoScaleDimensions = new SizeF(11F, 28F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -56,7 +56,7 @@
             Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             FormBorderStyle = FormBorderStyle.None;
             Margin = new Padding(4);
-            Name = "Form1";
+            Name = "WebSearch";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Form1";
             WindowState = FormWindowState.Minimized;
