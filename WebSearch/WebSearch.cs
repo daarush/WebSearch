@@ -21,7 +21,7 @@ namespace WebSearch
 
         private string defaultBrowserURL = string.Empty;
         private DropDownForm dropDownForm;
-        private List<TabInfo> openTabs = new List<TabInfo>();
+        public static List<TabInfo> openTabs = new List<TabInfo>();
 
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -48,65 +48,20 @@ namespace WebSearch
             dropDownForm.SelectedTab += DropDownForm_SelectedTab;
         }
 
-        private void print(string msg)
-        {
-            Debug.WriteLine(msg);
-        }
-
         private void Form1_Load(object sender, EventArgs e)
         {
-            print("APP Started!");
+            Logger.Print("APP Started!");
             ShowInTaskbar = false;
 
-            defaultBrowserURL = GetSystemDefaultBrowser();
+            defaultBrowserURL = BrowserHelper.GetSystemDefaultBrowser();
             bool registered = RegisterHotKey(this.Handle, HOTKEY_ID, MOD_CONTROL, spaceBar);
             if (!registered)
-                print("Failed to register hotkey");
+                Logger.Print("Failed to register hotkey");
 
             WindowState = FormWindowState.Minimized;
             this.Hide();
 
-            getFirefoxOpenTabs();
-        }
-
-        internal string GetSystemDefaultBrowser()
-        {
-            string name = string.Empty;
-            RegistryKey? regKey = null;
-
-            try
-            {
-                var regDefault = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.htm\\UserChoice", false);
-                var stringDefault = regDefault?.GetValue("ProgId") as string;
-
-                if (!string.IsNullOrEmpty(stringDefault))
-                {
-                    regKey = Registry.ClassesRoot.OpenSubKey(stringDefault + "\\shell\\open\\command", false);
-                    var value = regKey?.GetValue(null);
-                    if (value != null)
-                    {
-                        var valueStr = value.ToString();
-                        if (!string.IsNullOrEmpty(valueStr))
-                        {
-                            name = valueStr.ToLower().Replace("" + (char)34, "");
-
-                            if (!name.EndsWith("exe"))
-                                name = name.Substring(0, name.LastIndexOf(".exe") + 4);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                name = string.Format("ERROR: An exception of type: {0} occurred in method: {1} in the following module: {2}", ex.GetType(), ex.TargetSite, this.GetType());
-            }
-            finally
-            {
-                if (regKey != null)
-                    regKey.Close();
-            }
-
-            return name;
+            openTabs = FirefoxHelper.GetFirefoxOpenTabs();
         }
 
         protected override void WndProc(ref Message m)
@@ -115,7 +70,7 @@ namespace WebSearch
             {
                 this.Show();
 
-                getFirefoxOpenTabs();
+                openTabs = FirefoxHelper.GetFirefoxOpenTabs();
 
                 WindowState = FormWindowState.Normal;
                 Activate();
@@ -139,7 +94,7 @@ namespace WebSearch
                 string searchValue = MainTextBox.Text;
                 if (!string.IsNullOrWhiteSpace(searchValue))
                 {
-                    searchInANewTab(searchValue);
+                    BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue);
                     MainTextBox.Text = "";
                 }
 
@@ -153,18 +108,6 @@ namespace WebSearch
                 WindowState = FormWindowState.Minimized;
                 this.Hide();
             }
-        }
-
-        private void searchInANewTab(string searchValue)
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = defaultBrowserURL,
-                Arguments = $"https://google.com/search?q={Uri.EscapeDataString(searchValue)}",
-                CreateNoWindow = true,
-                UseShellExecute = true
-            };
-            Process.Start(psi);
         }
 
         private void MainTextBox_TextChanged(object sender, EventArgs e)
@@ -215,94 +158,8 @@ namespace WebSearch
             }
             catch (Exception ex)
             {
-                print("Failed to open URL: " + ex.ToString());
+                Logger.Print("Failed to open URL: " + ex.ToString());
             }
-        }
-
-        private void getFirefoxOpenTabs()
-        {
-            string sessionFile = getFirefoxSessionFile();
-
-            if (File.Exists(sessionFile))
-            {
-                openTabs = ReadFirefoxOpenTabs(sessionFile);
-                print($"Loaded {openTabs.Count} open tabs from Firefox.");
-            }
-            else
-            {
-                print("Firefox recovery.jsonlz4 session file not found.");
-                openTabs = new List<TabInfo>();
-            }
-        }
-
-        protected string getFirefoxSessionFile()
-        {
-            string firefoxProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Mozilla", "Firefox", "Profiles");
-            DirectoryInfo firefoxInfo = new DirectoryInfo(firefoxProfilePath);
-            var getRecentProfile = firefoxInfo.GetDirectories()
-                .OrderByDescending(d => d.LastWriteTime)
-                .FirstOrDefault()?.FullName ?? "";
-
-            var getTabSessionFile = Path.Combine(getRecentProfile, "sessionstore-backups", "recovery.jsonlz4");
-            return getTabSessionFile;
-        }
-
-        private List<TabInfo> ReadFirefoxOpenTabs(string filePath)
-        {
-            var tabsList = new List<TabInfo>();
-
-            try
-            {
-                byte[] fileBytes = File.ReadAllBytes(filePath);
-                if (fileBytes.Length < 12) return tabsList;
-
-                int uncompressedSize = BitConverter.ToInt32(fileBytes, 8);
-                if (uncompressedSize <= 0) return tabsList;
-
-                const int headerSize = 12;
-                int compressedLength = fileBytes.Length - headerSize;
-                if (compressedLength <= 0) return tabsList;
-
-                byte[] compressedData = new byte[compressedLength];
-                Array.Copy(fileBytes, headerSize, compressedData, 0, compressedLength);
-
-                byte[] decompressedData = new byte[uncompressedSize];
-                int decodedLength = LZ4Codec.Decode(
-                    compressedData, 0, compressedLength,
-                    decompressedData, 0, uncompressedSize);
-
-                if (decodedLength <= 0) return tabsList;
-
-                string json = Encoding.UTF8.GetString(decompressedData, 0, decodedLength);
-
-                using JsonDocument doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                if (!root.TryGetProperty("windows", out var windows)) return tabsList;
-
-                foreach (var window in windows.EnumerateArray())
-                {
-                    if (!window.TryGetProperty("tabs", out var tabs)) continue;
-
-                    foreach (var tab in tabs.EnumerateArray())
-                    {
-                        int index = tab.TryGetProperty("index", out var idxProp) ? idxProp.GetInt32() : 1;
-                        if (!tab.TryGetProperty("entries", out var entries)) continue;
-                        if (index <= 0 || index > entries.GetArrayLength()) continue;
-
-                        var currentEntry = entries[index - 1];
-                        string url = currentEntry.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "";
-                        string title = currentEntry.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "";
-
-                        tabsList.Add(new TabInfo { Title = title, Url = url });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                print("Error reading Firefox tabs: " + ex.ToString());
-            }
-
-            return tabsList;
         }
     }
 }
