@@ -1,5 +1,7 @@
+using K4os.Compression.LZ4;
 using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -7,7 +9,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
-using K4os.Compression.LZ4;
 
 namespace WebSearch
 {
@@ -19,8 +20,8 @@ namespace WebSearch
         private readonly uint spaceBar = (uint)Keys.Space;
 
         private string defaultBrowserURL = string.Empty;
-        string[] chromiumBrowsers = { "chrome", "chromium", "msedge", "brave", "opera", "vivaldi" };
-        private bool isChromiumBrowser = false;
+        private DropDownForm dropDownForm;
+        private List<TabInfo> openTabs = new List<TabInfo>();
 
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -42,6 +43,9 @@ namespace WebSearch
         public WebSearch()
         {
             InitializeComponent();
+
+            dropDownForm = new DropDownForm();
+            dropDownForm.SelectedTab += DropDownForm_SelectedTab;
         }
 
         private void print(string msg)
@@ -62,17 +66,7 @@ namespace WebSearch
             WindowState = FormWindowState.Minimized;
             this.Hide();
 
-            string sessionFile = getFirefoxSessionFile();
-            print($"Firefox session file: {sessionFile}");
-
-            if (File.Exists(sessionFile))
-            {
-                ReadFirefoxOpenTabs(sessionFile);
-            }
-            else
-            {
-                print("Firefox recovery.jsonlz4 session file not found.");
-            }
+            getFirefoxOpenTabs();
         }
 
         internal string GetSystemDefaultBrowser()
@@ -120,6 +114,9 @@ namespace WebSearch
             if (m.Msg == WM_HOTKEY && m.WParam.ToInt32() == HOTKEY_ID)
             {
                 this.Show();
+
+                getFirefoxOpenTabs();
+
                 WindowState = FormWindowState.Normal;
                 Activate();
                 MainTextBox.Focus();
@@ -160,121 +157,143 @@ namespace WebSearch
 
         private void searchInANewTab(string searchValue)
         {
-            bool isChromiumBrowser = chromiumBrowsers.Any(name => defaultBrowserURL.Contains(name));
-            print($"Default Browser URL: {defaultBrowserURL}");
-            print($"Is Chromium Browser: {isChromiumBrowser}");
-
-            if (isChromiumBrowser)
+            var psi = new ProcessStartInfo
             {
-                Process.Start(defaultBrowserURL, "\"? searchterm\"");
+                FileName = defaultBrowserURL,
+                Arguments = $"https://google.com/search?q={Uri.EscapeDataString(searchValue)}",
+                CreateNoWindow = true,
+                UseShellExecute = true
+            };
+            Process.Start(psi);
+        }
+
+        private void MainTextBox_TextChanged(object sender, EventArgs e)
+        {
+            string query = MainTextBox.Text ?? "";
+
+            // Keep textbox position unchanged, position dropdown below textbox
+            var pos = MainTextBox.PointToScreen(new System.Drawing.Point(0, MainTextBox.Height));
+            dropDownForm.Location = pos;
+            dropDownForm.ShowInTaskbar = false;
+            dropDownForm.TopMost = true;
+            dropDownForm.Width = MainTextBox.Width;
+
+            // Filter tabs by query, case-insensitive; hide dropdown if no matches or empty input
+            var filtered = string.IsNullOrWhiteSpace(query)
+                ? new List<TabInfo>()
+                : openTabs.Where(t =>
+                    (t.Title ?? "").Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    (t.Url ?? "").Contains(query, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+            if (filtered.Any())
+            {
+                dropDownForm.UpdateSuggestions(filtered);
+                dropDownForm.BringToFront();
+                MainTextBox.Focus();
             }
             else
             {
-                var psi = new ProcessStartInfo
+                dropDownForm.Hide();
+            }
+        }
+
+        private void DropDownForm_SelectedTab(object? sender, TabInfo selected)
+        {
+            if (selected == null) return;
+
+            dropDownForm.Hide();
+            MainTextBox.Text = "";
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
                 {
-                    FileName = defaultBrowserURL,
-                    Arguments = $"https://google.com/search?q={Uri.EscapeDataString(searchValue)}",
-                    CreateNoWindow = true,
+                    FileName = selected.Url,
                     UseShellExecute = true
-                };
-                Process.Start(psi);
+                });
+            }
+            catch (Exception ex)
+            {
+                print("Failed to open URL: " + ex.ToString());
+            }
+        }
+
+        private void getFirefoxOpenTabs()
+        {
+            string sessionFile = getFirefoxSessionFile();
+
+            if (File.Exists(sessionFile))
+            {
+                openTabs = ReadFirefoxOpenTabs(sessionFile);
+                print($"Loaded {openTabs.Count} open tabs from Firefox.");
+            }
+            else
+            {
+                print("Firefox recovery.jsonlz4 session file not found.");
+                openTabs = new List<TabInfo>();
             }
         }
 
         protected string getFirefoxSessionFile()
         {
-            string firefoxProfilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Mozilla\\Firefox\\Profiles";
+            string firefoxProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Mozilla", "Firefox", "Profiles");
             DirectoryInfo firefoxInfo = new DirectoryInfo(firefoxProfilePath);
             var getRecentProfile = firefoxInfo.GetDirectories()
                 .OrderByDescending(d => d.LastWriteTime)
-                .First().FullName;
+                .FirstOrDefault()?.FullName ?? "";
 
             var getTabSessionFile = Path.Combine(getRecentProfile, "sessionstore-backups", "recovery.jsonlz4");
             return getTabSessionFile;
         }
 
-
-
-        private void ReadFirefoxOpenTabs(string filePath)
+        private List<TabInfo> ReadFirefoxOpenTabs(string filePath)
         {
+            var tabsList = new List<TabInfo>();
+
             try
             {
                 byte[] fileBytes = File.ReadAllBytes(filePath);
+                if (fileBytes.Length < 12) return tabsList;
 
-                if (fileBytes.Length < 12)
-                {
-                    print("Session file too small or invalid.");
-                    return;
-                }
-
-                // mozLz40\0 (8 bytes) then 4 bytes little-endian uncompressed size
                 int uncompressedSize = BitConverter.ToInt32(fileBytes, 8);
-                if (uncompressedSize <= 0)
-                {
-                    print("Invalid uncompressed size in header.");
-                    return;
-                }
+                if (uncompressedSize <= 0) return tabsList;
 
-                const int headerSize = 12; // 8 magic + 4 size
+                const int headerSize = 12;
                 int compressedLength = fileBytes.Length - headerSize;
-                if (compressedLength <= 0)
-                {
-                    print("No compressed data found.");
-                    return;
-                }
+                if (compressedLength <= 0) return tabsList;
 
-                // copy compressed part
                 byte[] compressedData = new byte[compressedLength];
                 Array.Copy(fileBytes, headerSize, compressedData, 0, compressedLength);
 
-                // allocate exact buffer for decompressed data
                 byte[] decompressedData = new byte[uncompressedSize];
-
                 int decodedLength = LZ4Codec.Decode(
                     compressedData, 0, compressedLength,
                     decompressedData, 0, uncompressedSize);
 
-                if (decodedLength <= 0)
-                {
-                    print("LZ4 decompression returned zero or negative length.");
-                    return;
-                }
+                if (decodedLength <= 0) return tabsList;
 
                 string json = Encoding.UTF8.GetString(decompressedData, 0, decodedLength);
 
                 using JsonDocument doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
-
-                if (!root.TryGetProperty("windows", out var windows))
-                {
-                    print("No 'windows' property in session JSON.");
-                    return;
-                }
+                if (!root.TryGetProperty("windows", out var windows)) return tabsList;
 
                 foreach (var window in windows.EnumerateArray())
                 {
-                    if (!window.TryGetProperty("tabs", out var tabs))
-                        continue;
+                    if (!window.TryGetProperty("tabs", out var tabs)) continue;
 
-                    print($"Window has {tabs.GetArrayLength()} tabs:");
                     foreach (var tab in tabs.EnumerateArray())
                     {
-                        int index = 1;
-                        if (tab.TryGetProperty("index", out var idxProp))
-                            index = idxProp.GetInt32();
-
-                        if (!tab.TryGetProperty("entries", out var entries))
-                            continue;
-
-                        if (index <= 0 || index > entries.GetArrayLength())
-                            continue;
+                        int index = tab.TryGetProperty("index", out var idxProp) ? idxProp.GetInt32() : 1;
+                        if (!tab.TryGetProperty("entries", out var entries)) continue;
+                        if (index <= 0 || index > entries.GetArrayLength()) continue;
 
                         var currentEntry = entries[index - 1];
-
                         string url = currentEntry.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "";
                         string title = currentEntry.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "";
 
-                        print($"  - {title}: {url}");
+                        tabsList.Add(new TabInfo { Title = title, Url = url });
                     }
                 }
             }
@@ -282,6 +301,8 @@ namespace WebSearch
             {
                 print("Error reading Firefox tabs: " + ex.ToString());
             }
+
+            return tabsList;
         }
     }
 }

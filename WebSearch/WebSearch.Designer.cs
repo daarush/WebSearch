@@ -43,6 +43,7 @@
             MainTextBox.Size = new Size(1000, 40);
             MainTextBox.TabIndex = 0;
             MainTextBox.Text = "";
+            MainTextBox.TextChanged += MainTextBox_TextChanged;
             MainTextBox.KeyDown += MainTextBox_KeyDown;
             // 
             // WebSearch
@@ -50,7 +51,7 @@
             AutoScaleDimensions = new SizeF(11F, 28F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.Black;
-            ClientSize = new Size(1013, 56);
+            ClientSize = new Size(1025, 60);
             ControlBox = false;
             Controls.Add(MainTextBox);
             Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
@@ -58,7 +59,7 @@
             Margin = new Padding(4);
             Name = "WebSearch";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "Form1";
+            Text = "SearchBar";
             WindowState = FormWindowState.Minimized;
             Load += Form1_Load;
             ResumeLayout(false);
