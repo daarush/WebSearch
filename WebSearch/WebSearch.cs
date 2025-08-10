@@ -109,10 +109,21 @@ namespace WebSearch
             {
                 e.SuppressKeyPress = true;
 
-                string searchValue = MainTextBox.Text;
+                string searchValue = MainTextBox.Text.Trim();
                 if (!string.IsNullOrWhiteSpace(searchValue))
                 {
-                    BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue);
+                    if (IsValidUrl(searchValue))
+                    {
+                        if (!searchValue.StartsWith("http://") && !searchValue.StartsWith("https://"))
+                            searchValue = "https://" + searchValue;
+
+                        BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue, true);
+                    }
+                    else
+                    {
+                        BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue, false);
+                    }
+
                     MainTextBox.Text = "";
                     WindowState = FormWindowState.Minimized;
                     this.Hide();
@@ -137,6 +148,24 @@ namespace WebSearch
                 }
             }
         }
+
+        bool IsValidUrl(string input)
+        {
+            if (Uri.TryCreate(input, UriKind.Absolute, out var uriResult)
+                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
+            {
+                return true;
+            }
+
+            if (Uri.TryCreate("https://" + input, UriKind.Absolute, out uriResult)
+                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
 
         private void MainTextBox_TextChanged(object? sender, EventArgs? e)
         {
@@ -172,7 +201,7 @@ namespace WebSearch
                     case "@f":
                         sourceList = frequentSites.Cast<TabInfo>().ToList();
                         break;
-                     case "@r":
+                    case "@r":
                         Logger.Print("Recent sites: " + recentSites.Count);
                         sourceList = recentSites.Cast<TabInfo>().ToList();
                         break;
@@ -182,7 +211,7 @@ namespace WebSearch
                 }
             }
 
-            if (sourceList == null)
+                if (sourceList == null)
             {
                 sourceList = openTabs
                     .Cast<TabInfo>()

@@ -46,21 +46,35 @@ namespace WebSearch
         }
 
 
-        public static void searchInANewTab(string defaultBrowserURL, string searchValue)
+        public static void searchInANewTab(string defaultBrowserURL, string searchValue, bool website)
         {
+            var psi = new ProcessStartInfo();
+
             WebSearch.recentSites.Add(new RecentItem
             {
                 Title = searchValue,
                 Url = $"{Constants.GoogleSearchUrl}{Uri.EscapeDataString(searchValue)}"
             });
 
-            var psi = new ProcessStartInfo
+            if (website)
             {
-                FileName = defaultBrowserURL,
-                Arguments = $"{Constants.GoogleSearchUrl}{Uri.EscapeDataString(searchValue)}",
-                CreateNoWindow = true,
-                UseShellExecute = true
-            };
+                psi = new ProcessStartInfo
+                {
+                    FileName = searchValue,
+                    CreateNoWindow = true,
+                    UseShellExecute = true
+                };
+
+            } else
+            {
+                psi = new ProcessStartInfo
+                {
+                    FileName = defaultBrowserURL,
+                    Arguments = $"{Constants.GoogleSearchUrl}{Uri.EscapeDataString(searchValue)}",
+                    CreateNoWindow = true,
+                    UseShellExecute = true
+                };
+            }
             Process.Start(psi);
         }
     }
