@@ -28,18 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            listBoxSuggestions = new ListBox();
             SuspendLayout();
-            // 
-            // listBoxSuggestions
-            // 
-            listBoxSuggestions.BackColor = Color.Black;
-            listBoxSuggestions.ForeColor = Color.White;
-            listBoxSuggestions.FormattingEnabled = true;
-            listBoxSuggestions.Location = new Point(-3, 1);
-            listBoxSuggestions.Name = "listBoxSuggestions";
-            listBoxSuggestions.Size = new Size(1025, 204);
-            listBoxSuggestions.TabIndex = 0;
             // 
             // DropDownForm
             // 
@@ -47,7 +36,6 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ActiveCaptionText;
             ClientSize = new Size(1025, 200);
-            Controls.Add(listBoxSuggestions);
             ForeColor = Color.White;
             FormBorderStyle = FormBorderStyle.None;
             Name = "DropDownForm";
@@ -59,6 +47,6 @@
 
         #endregion
 
-        private ListBox listBoxSuggestions;
+        private NoScrollBarListbox listBoxSuggestions;
     }
 }

@@ -75,6 +75,8 @@ namespace WebSearch
                 WindowState = FormWindowState.Normal;
                 Activate();
                 MainTextBox.Focus();
+
+                MainTextBox_TextChanged(null, null);
             }
             base.WndProc(ref m);
         }
@@ -113,13 +115,12 @@ namespace WebSearch
         private void MainTextBox_TextChanged(object sender, EventArgs e)
         {
             string query = MainTextBox.Text ?? "";
-
-            // Keep textbox position unchanged, position dropdown below textbox
-            var pos = MainTextBox.PointToScreen(new System.Drawing.Point(0, MainTextBox.Height));
+            
+            var pos = this.PointToScreen(new System.Drawing.Point(0, MainTextBox.Height));
             dropDownForm.Location = pos;
             dropDownForm.ShowInTaskbar = false;
             dropDownForm.TopMost = true;
-            dropDownForm.Width = MainTextBox.Width;
+            dropDownForm.Width = this.Width;
 
             // Filter tabs by query, case-insensitive; hide dropdown if no matches or empty input
             var filtered = string.IsNullOrWhiteSpace(query)
@@ -138,6 +139,7 @@ namespace WebSearch
             else
             {
                 dropDownForm.Hide();
+                MainTextBox.Focus();
             }
         }
 

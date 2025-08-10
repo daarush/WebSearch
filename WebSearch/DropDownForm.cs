@@ -13,12 +13,25 @@ namespace WebSearch
         public DropDownForm()
         {
             InitializeComponent();
+            listBoxSuggestions = new NoScrollBarListbox
+            {
+                BackColor = Color.Black,
+                BorderStyle = BorderStyle.None,
+                ForeColor = Color.White,
+                FormattingEnabled = true,
+                Location = new Point(-3, 1),
+                Name = "listBoxSuggestions",
+                Size = new Size(1025, 200),
+                TabIndex = 0,
+                ScrollAlwaysVisible = true,
+            };
+            Controls.Add(listBoxSuggestions);
+
             FormBorderStyle = FormBorderStyle.None;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.Manual;
             TopMost = true;
 
-            // ensure you added a ListBox named 'listBoxSuggestions' in designer and dock it fill
             listBoxSuggestions.Click += ListBoxSuggestions_Click;
             listBoxSuggestions.DoubleClick += ListBoxSuggestions_DoubleClick;
             listBoxSuggestions.KeyDown += ListBoxSuggestions_KeyDown;
