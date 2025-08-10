@@ -147,20 +147,51 @@ namespace WebSearch
             dropDownForm.TopMost = true;
             dropDownForm.Width = this.Width;
 
-            var combinedList = openTabs
-               .Cast<TabInfo>()
-               .Concat(bookmarks)
-               .Concat(history)
-               .Concat(frequentSites)
-               .ToList();
+            List<TabInfo>? sourceList = null;
+            string filterTerm = query;
 
+            // Check if query starts with '@' and has a space
+            if (query.StartsWith("@") && query.Contains(' '))
+            {
+                var splitIndex = query.IndexOf(' ');
+                var command = query.Substring(0, splitIndex).ToLower();
+                filterTerm = query.Substring(splitIndex + 1);
 
+                switch (command)
+                {
+                    case "@o":
+                        sourceList = openTabs.Cast<TabInfo>().ToList();
+                        break;
+                    case "@b":
+                        sourceList = bookmarks.Cast<TabInfo>().ToList();
+                        break;
+                    case "@h":
+                        sourceList = history.Cast<TabInfo>().ToList();
+                        break;
+                    case "@f":
+                        sourceList = frequentSites.Cast<TabInfo>().ToList();
+                        break;
+                    default:
+                        sourceList = null;
+                        break;
+                }
+            }
 
-            var filtered = string.IsNullOrWhiteSpace(query)
-                ? new List<TabInfo>()
-                : combinedList.Where(t =>
-                    (t.Title ?? "").Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    (t.Url ?? "").Contains(query, StringComparison.OrdinalIgnoreCase))
+            if (sourceList == null)
+            {
+                sourceList = openTabs
+                    .Cast<TabInfo>()
+                    .Concat(bookmarks)
+                    .Concat(history)
+                    .Concat(frequentSites)
+                    .ToList();
+            }
+
+            var filtered = string.IsNullOrWhiteSpace(filterTerm)
+                ? sourceList
+                : sourceList.Where(t =>
+                    (t.Title ?? "").Contains(filterTerm, StringComparison.OrdinalIgnoreCase) ||
+                    (t.Url ?? "").Contains(filterTerm, StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
             if (filtered.Any())
@@ -175,6 +206,7 @@ namespace WebSearch
                 MainTextBox.Focus();
             }
         }
+
 
         private void DropDownForm_SelectedTab(object? sender, TabInfo selected)
         {
