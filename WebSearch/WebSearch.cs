@@ -8,8 +8,8 @@ namespace WebSearch
         private string defaultBrowserURL = string.Empty;
         private DropDownForm dropDownForm;
 
-        public static List<TabInfo> openTabs = new List<TabInfo>();
-        public static List<TabInfo> bookmarks = new List<TabInfo>();
+        public static List<OpenTab> openTabs = new List<OpenTab>();
+        public static List<BookmarkItem> bookmarks = new List<BookmarkItem>();
         public static List<HistoryItem> history = new List<HistoryItem>();
         public static List<FrequentSitesItem> frequentSites = new List<FrequentSitesItem>();
 
@@ -35,6 +35,24 @@ namespace WebSearch
             InitializeComponent();
 
             dropDownForm = new DropDownForm();
+            dropDownForm.Owner = this;
+
+            this.Deactivate += async (s, e) =>
+            {
+                // small delay allows clicks that move focus to the dropdown to land
+                await Task.Delay(60);
+
+                bool mainHasFocus = this.ContainsFocus;
+                bool dropdownHasFocus = dropDownForm != null && dropDownForm.ContainsFocus;
+
+                if (!mainHasFocus && !dropdownHasFocus)
+                {
+                    // hide both
+                    dropDownForm?.Hide();
+                    this.Hide();
+                }
+            };
+
             dropDownForm.SelectedTab += DropDownForm_SelectedTab;
         }
 
@@ -91,12 +109,7 @@ namespace WebSearch
                 e.SuppressKeyPress = true;
 
                 string searchValue = MainTextBox.Text;
-                if (searchValue == "@all")
-                {
-                    dropDownForm.ShowAllTabs(openTabs);
-                    dropDownForm.Show();
-                }
-                else if (!string.IsNullOrWhiteSpace(searchValue))
+                if (!string.IsNullOrWhiteSpace(searchValue))
                 {
                     BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue);
                     MainTextBox.Text = "";
@@ -135,10 +148,12 @@ namespace WebSearch
             dropDownForm.Width = this.Width;
 
             var combinedList = openTabs
-                .Concat(bookmarks)
-                .Concat(history)
-                .Concat(frequentSites)
-                .ToList();
+               .Cast<TabInfo>()
+               .Concat(bookmarks)
+               .Concat(history)
+               .Concat(frequentSites)
+               .ToList();
+
 
 
             var filtered = string.IsNullOrWhiteSpace(query)

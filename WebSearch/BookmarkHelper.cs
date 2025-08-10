@@ -7,9 +7,9 @@ namespace WebSearch
 {
     public class BookmarkHelper
     {
-        public static List<TabInfo> GetBookmarks()
+        public static List<BookmarkItem> GetBookmarks()
         {
-            var bookmarks = new List<TabInfo>();
+            var bookmarks = new List<BookmarkItem>();
             string profilePath = FirefoxHelper.GetProfilePath();
             if (string.IsNullOrEmpty(profilePath)) return bookmarks;
 
@@ -42,7 +42,7 @@ namespace WebSearch
                 {
                     string title = reader.IsDBNull(0) ? "" : reader.GetString(0);
                     string url = reader.IsDBNull(1) ? "" : reader.GetString(1);
-                    bookmarks.Add(new TabInfo { Title = title, Url = url });
+                    bookmarks.Add(new BookmarkItem { Title = title, Url = url });
                 }
             }
             catch (Exception ex)

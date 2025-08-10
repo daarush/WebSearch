@@ -30,9 +30,9 @@ namespace WebSearch
             return getTabSessionFile;
         }
 
-        public static List<TabInfo> ReadFirefoxOpenTabs(string filePath)
+        public static List<OpenTab> ReadFirefoxOpenTabs(string filePath)
         {
-            var tabsList = new List<TabInfo>();
+            var tabsList = new List<OpenTab>();
 
             try
             {
@@ -76,7 +76,7 @@ namespace WebSearch
                         string url = currentEntry.TryGetProperty("url", out var u) ? u.GetString() ?? "" : "";
                         string title = currentEntry.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "";
 
-                        tabsList.Add(new TabInfo { Title = title, Url = url });
+                        tabsList.Add(new OpenTab { Title = title, Url = url });
                     }
                 }
             }
@@ -88,14 +88,24 @@ namespace WebSearch
             return tabsList;
         }
 
-        public static List<TabInfo> GetFirefoxOpenTabs()
+        public static List<OpenTab> GetFirefoxOpenTabs()
         {
             string sessionFile = getFirefoxSessionFile();
-            if (File.Exists(sessionFile))
-                return ReadFirefoxOpenTabs(sessionFile);
-            else
-                return new List<TabInfo>();
+            if (!File.Exists(sessionFile)) return new List<OpenTab>();
+
+            string tempCopyPath = Path.Combine(Path.GetTempPath(), "recovery_copy.jsonlz4");
+            try
+            {
+                File.Copy(sessionFile, tempCopyPath, overwrite: true);
+                return ReadFirefoxOpenTabs(tempCopyPath);
+            }
+            catch (IOException ex)
+            {
+                Debug.WriteLine("Failed to copy session file: " + ex.Message);
+                return new List<OpenTab>();
+            }
         }
+
 
     }
 }

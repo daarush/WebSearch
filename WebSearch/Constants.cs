@@ -17,7 +17,7 @@
         public static readonly Size DropDownSize = new Size(1025, 200);
         public static readonly Point DropDownLocation = new Point(-3, 1);
 
-        public const double FormOpacity = 0.9;
+        public const double FormOpacity = 0.95;
 
         //BrowserHelper constants
         public const string RegKeyUserChoice = @"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.htm\UserChoice";

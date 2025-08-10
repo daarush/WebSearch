@@ -6,6 +6,12 @@
         public required string Url { get; set; }
     }
 
+    public class OpenTab : TabInfo
+    {}
+
+    public class BookmarkItem : TabInfo
+    {}
+
     public class HistoryItem : TabInfo
     {
         public DateTime VisitDate { get; set; }

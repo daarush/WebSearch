@@ -28,25 +28,25 @@
         /// </summary>
         private void InitializeComponent()
         {
-            ResultsText = new Label();
+            SelectedIndexInfoLabel = new Label();
             ResultsPanel = new Panel();
             ResultsPanel.SuspendLayout();
             SuspendLayout();
             // 
-            // ResultsText
+            // SelectedIndexInfoLabel
             // 
-            ResultsText.BackColor = Color.Transparent;
-            ResultsText.Dock = DockStyle.Fill;
-            ResultsText.Location = new Point(0, 0);
-            ResultsText.Name = "ResultsText";
-            ResultsText.Size = new Size(1026, 26);
-            ResultsText.TabIndex = 0;
-            ResultsText.Text = "Results: ";
+            SelectedIndexInfoLabel.BackColor = Color.Transparent;
+            SelectedIndexInfoLabel.Dock = DockStyle.Fill;
+            SelectedIndexInfoLabel.Location = new Point(0, 0);
+            SelectedIndexInfoLabel.Name = "SelectedIndexInfoLabel";
+            SelectedIndexInfoLabel.Size = new Size(1026, 26);
+            SelectedIndexInfoLabel.TabIndex = 0;
+            SelectedIndexInfoLabel.Text = "Results: ";
             // 
             // ResultsPanel
             // 
             ResultsPanel.BackColor = Color.DarkSlateGray;
-            ResultsPanel.Controls.Add(ResultsText);
+            ResultsPanel.Controls.Add(SelectedIndexInfoLabel);
             ResultsPanel.ForeColor = Color.Black;
             ResultsPanel.Location = new Point(0, 205);
             ResultsPanel.Name = "ResultsPanel";
@@ -64,6 +64,8 @@
             FormBorderStyle = FormBorderStyle.None;
             Name = "DropDownForm";
             RightToLeft = RightToLeft.No;
+            ShowIcon = false;
+            ShowInTaskbar = false;
             StartPosition = FormStartPosition.Manual;
             Text = "DropDownForm";
             ResultsPanel.ResumeLayout(false);
@@ -73,7 +75,7 @@
         #endregion
 
         private NoScrollBarListbox listBoxSuggestions;
-        private Label ResultsText;
+        private Label SelectedIndexInfoLabel;
         private Panel ResultsPanel;
     }
 }
