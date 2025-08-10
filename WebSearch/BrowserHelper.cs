@@ -1,10 +1,5 @@
 ﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WebSearch
 {
@@ -17,12 +12,12 @@ namespace WebSearch
 
             try
             {
-                var regDefault = Registry.CurrentUser.OpenSubKey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.htm\\UserChoice", false);
+                var regDefault = Registry.CurrentUser.OpenSubKey(Constants.RegKeyUserChoice, false);
                 var stringDefault = regDefault?.GetValue("ProgId") as string;
 
                 if (!string.IsNullOrEmpty(stringDefault))
                 {
-                    regKey = Registry.ClassesRoot.OpenSubKey(stringDefault + "\\shell\\open\\command", false);
+                    regKey = Registry.ClassesRoot.OpenSubKey(stringDefault + "\\" + Constants.RegKeyShellOpenCommand, false);
                     var value = regKey?.GetValue(null);
                     if (value != null)
                     {
@@ -39,7 +34,7 @@ namespace WebSearch
             }
             catch (Exception ex)
             {
-                name = string.Format("ERROR: An exception of type: {0} occurred in method: {1} in the following module: {2}", ex.GetType(), ex.TargetSite, typeof(BrowserHelper));
+                name = string.Format(Constants.ErrorMessageFormat, ex.GetType(), ex.TargetSite, typeof(BrowserHelper));
             }
             finally
             {
@@ -56,7 +51,7 @@ namespace WebSearch
             var psi = new ProcessStartInfo
             {
                 FileName = defaultBrowserURL,
-                Arguments = $"https://google.com/search?q={Uri.EscapeDataString(searchValue)}",
+                Arguments = $"{Constants.GoogleSearchUrl}{Uri.EscapeDataString(searchValue)}",
                 CreateNoWindow = true,
                 UseShellExecute = true
             };

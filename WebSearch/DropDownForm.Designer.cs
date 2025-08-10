@@ -28,25 +28,52 @@
         /// </summary>
         private void InitializeComponent()
         {
+            ResultsText = new Label();
+            ResultsPanel = new Panel();
+            ResultsPanel.SuspendLayout();
             SuspendLayout();
+            // 
+            // ResultsText
+            // 
+            ResultsText.BackColor = Color.Transparent;
+            ResultsText.Dock = DockStyle.Fill;
+            ResultsText.Location = new Point(0, 0);
+            ResultsText.Name = "ResultsText";
+            ResultsText.Size = new Size(1026, 26);
+            ResultsText.TabIndex = 0;
+            ResultsText.Text = "Results: ";
+            // 
+            // ResultsPanel
+            // 
+            ResultsPanel.BackColor = Color.DarkSlateGray;
+            ResultsPanel.Controls.Add(ResultsText);
+            ResultsPanel.ForeColor = Color.Black;
+            ResultsPanel.Location = new Point(0, 205);
+            ResultsPanel.Name = "ResultsPanel";
+            ResultsPanel.Size = new Size(1026, 26);
+            ResultsPanel.TabIndex = 1;
             // 
             // DropDownForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ActiveCaptionText;
-            ClientSize = new Size(1025, 200);
+            ClientSize = new Size(1025, 230);
+            Controls.Add(ResultsPanel);
             ForeColor = Color.White;
             FormBorderStyle = FormBorderStyle.None;
             Name = "DropDownForm";
             RightToLeft = RightToLeft.No;
             StartPosition = FormStartPosition.Manual;
             Text = "DropDownForm";
+            ResultsPanel.ResumeLayout(false);
             ResumeLayout(false);
         }
 
         #endregion
 
         private NoScrollBarListbox listBoxSuggestions;
+        private Label ResultsText;
+        private Panel ResultsPanel;
     }
 }

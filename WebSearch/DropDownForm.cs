@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Windows.Forms;
-
-namespace WebSearch
+﻿namespace WebSearch
 {
     public partial class DropDownForm : Form
     {
@@ -13,15 +9,17 @@ namespace WebSearch
         public DropDownForm()
         {
             InitializeComponent();
+            Opacity = Constants.FormOpacity;
+
             listBoxSuggestions = new NoScrollBarListbox
             {
-                BackColor = Color.Black,
+                BackColor = Constants.BackgroundColor,
                 BorderStyle = BorderStyle.None,
-                ForeColor = Color.White,
+                ForeColor = Constants.ForegroundColor,
                 FormattingEnabled = true,
-                Location = new Point(-3, 1),
+                Location = Constants.DropDownLocation,
                 Name = "listBoxSuggestions",
-                Size = new Size(1025, 200),
+                Size = Constants.DropDownSize,
                 TabIndex = 0,
                 ScrollAlwaysVisible = true,
             };
@@ -32,6 +30,11 @@ namespace WebSearch
             StartPosition = FormStartPosition.Manual;
             TopMost = true;
 
+            ResultsPanel.BackColor = Constants.DarkPurple;
+            ResultsText.BackColor = Constants.DarkPurple;
+            ResultsText.ForeColor = Constants.ForegroundColor;
+            ResultsText.TextAlign = ContentAlignment.MiddleCenter;
+
             listBoxSuggestions.Click += ListBoxSuggestions_Click;
             listBoxSuggestions.DoubleClick += ListBoxSuggestions_DoubleClick;
             listBoxSuggestions.KeyDown += ListBoxSuggestions_KeyDown;
@@ -39,14 +42,44 @@ namespace WebSearch
 
         public void UpdateSuggestions(IEnumerable<TabInfo> suggestions)
         {
-            currentItems = new List<TabInfo>(suggestions);
+            int totalItemsFiltered = suggestions.Count();
+            ResultsText.Text = totalItemsFiltered == 1 ? "1 result found" : $"{totalItemsFiltered} results found";
+
+            currentItems = suggestions
+                .OrderByDescending(item => item is FrequentSitesItem)
+                .ThenBy(item => item.Title) 
+                .ToList();
+
             listBoxSuggestions.BeginUpdate();
             listBoxSuggestions.Items.Clear();
 
             foreach (var item in currentItems)
             {
-                // display format: Title — Url (trim if too long if you want)
-                listBoxSuggestions.Items.Add(string.IsNullOrWhiteSpace(item.Title) ? item.Url : $"{item.Title} — {item.Url}");
+
+                if (item is HistoryItem historyItem)
+                {
+                    listBoxSuggestions.Items.Add(
+                        string.IsNullOrWhiteSpace(historyItem.Title)
+                        ? $"     [{historyItem.VisitDate:yyyy-MM-dd HH:mm}]  {historyItem.Url}"
+                        : $"     [{historyItem.VisitDate:yyyy-MM-dd HH:mm}]  {historyItem.Title}    —    {historyItem.Url}"
+                    );
+                }
+                else if (item is FrequentSitesItem frequent)
+                {
+                    listBoxSuggestions.Items.Add(
+                        string.IsNullOrWhiteSpace(frequent.Title)
+                        ? $"    ★ {frequent.Url}"
+                        : $"    ★ {frequent.Title} — {frequent.Url} (Visits: {frequent.VisitCount})"
+                    );
+                }
+                else
+                {
+                    listBoxSuggestions.Items.Add(
+                        string.IsNullOrWhiteSpace(item.Title)
+                        ? item.Url
+                        : $"    {item.Title} — {item.Url}"
+                    );
+                }
             }
 
             listBoxSuggestions.EndUpdate();
@@ -54,12 +87,28 @@ namespace WebSearch
             if (currentItems.Count > 0)
             {
                 if (!Visible) Show();
-                listBoxSuggestions.SelectedIndex = 0;
+                listBoxSuggestions.SelectedIndex = -1;
             }
             else
             {
                 Hide();
             }
+        }
+
+
+        public void MoveSelection(bool moveDown)
+        {
+            if (listBoxSuggestions.Items.Count == 0) return;
+
+            int newIndex = listBoxSuggestions.SelectedIndex;
+
+            if (moveDown)
+                newIndex = Math.Min(newIndex + 1, listBoxSuggestions.Items.Count - 1);
+            else
+                newIndex = Math.Max(newIndex - 1, 0);
+
+            listBoxSuggestions.SelectedIndex = newIndex;
+            listBoxSuggestions.Focus();
         }
 
         private void ListBoxSuggestions_Click(object? sender, EventArgs e)
@@ -84,6 +133,31 @@ namespace WebSearch
                 Hide();
             }
         }
+
+        public void ShowAllTabs(List<TabInfo> tabs)
+        {
+            currentItems = new List<TabInfo>(tabs);
+            listBoxSuggestions.BeginUpdate();
+            listBoxSuggestions.Items.Clear();
+
+            foreach (var tab in currentItems)
+            {
+                listBoxSuggestions.Items.Add(string.IsNullOrWhiteSpace(tab.Title) ? tab.Url : $"{tab.Title} — {tab.Url}");
+            }
+
+            listBoxSuggestions.EndUpdate();
+
+            if (currentItems.Count > 0)
+            {
+                if (!Visible) Show();
+                listBoxSuggestions.SelectedIndex = 0;
+            }
+            else
+            {
+                Hide();
+            }
+        }
+
 
         private void CommitSelection()
         {

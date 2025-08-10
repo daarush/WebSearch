@@ -1,16 +1,23 @@
 ﻿using K4os.Compression.LZ4;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace WebSearch
 {
     public class FirefoxHelper
     {
+        public static string GetProfilePath()
+        {
+            string firefoxProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Mozilla", "Firefox", "Profiles");
+            DirectoryInfo firefoxInfo = new DirectoryInfo(firefoxProfilePath);
+            var getRecentProfile = firefoxInfo.GetDirectories()
+                .OrderByDescending(d => d.LastWriteTime)
+                .FirstOrDefault()?.FullName ?? "";
+
+            return getRecentProfile;
+        }
+
         public static string getFirefoxSessionFile()
         {
             string firefoxProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Mozilla", "Firefox", "Profiles");

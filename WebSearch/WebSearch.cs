@@ -1,27 +1,17 @@
-using K4os.Compression.LZ4;
-using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.Json;
-using System.Windows.Forms;
 
 namespace WebSearch
 {
     public partial class WebSearch : Form
     {
-        private const uint MOD_CONTROL = 0x0002;
-        private const uint WM_HOTKEY = 0x0312;
-        private const int HOTKEY_ID = 1;
-        private readonly uint spaceBar = (uint)Keys.Space;
-
         private string defaultBrowserURL = string.Empty;
         private DropDownForm dropDownForm;
+
         public static List<TabInfo> openTabs = new List<TabInfo>();
+        public static List<TabInfo> bookmarks = new List<TabInfo>();
+        public static List<HistoryItem> history = new List<HistoryItem>();
+        public static List<FrequentSitesItem> frequentSites = new List<FrequentSitesItem>();
 
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -34,7 +24,7 @@ namespace WebSearch
             get
             {
                 var cp = base.CreateParams;
-                const int WS_EX_TOOLWINDOW = 0x00000080;
+                const int WS_EX_TOOLWINDOW = Constants.WS_EX_TOOLWINDOW;
                 cp.ExStyle |= WS_EX_TOOLWINDOW;
                 return cp;
             }
@@ -48,30 +38,37 @@ namespace WebSearch
             dropDownForm.SelectedTab += DropDownForm_SelectedTab;
         }
 
+
+        private void UpdateLists()
+        {
+            openTabs = FirefoxHelper.GetFirefoxOpenTabs();
+            bookmarks = BookmarkHelper.GetBookmarks();
+            history = HistoryHelper.GetHistory();
+            frequentSites = FrequentSitesHelper.GetFrequentSites();
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
             Logger.Print("APP Started!");
             ShowInTaskbar = false;
 
             defaultBrowserURL = BrowserHelper.GetSystemDefaultBrowser();
-            bool registered = RegisterHotKey(this.Handle, HOTKEY_ID, MOD_CONTROL, spaceBar);
+            bool registered = RegisterHotKey(this.Handle, Constants.HOTKEY_ID, Constants.MOD_CONTROL, Constants.SPACE_BAR);
             if (!registered)
                 Logger.Print("Failed to register hotkey");
 
             WindowState = FormWindowState.Minimized;
             this.Hide();
 
-            openTabs = FirefoxHelper.GetFirefoxOpenTabs();
+            UpdateLists();
         }
 
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == WM_HOTKEY && m.WParam.ToInt32() == HOTKEY_ID)
+            if (m.Msg == Constants.WM_HOTKEY && m.WParam.ToInt32() == Constants.HOTKEY_ID)
             {
                 this.Show();
-
-                openTabs = FirefoxHelper.GetFirefoxOpenTabs();
-
+                UpdateLists();
                 WindowState = FormWindowState.Normal;
                 Activate();
                 MainTextBox.Focus();
@@ -83,7 +80,7 @@ namespace WebSearch
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            UnregisterHotKey(this.Handle, HOTKEY_ID);
+            UnregisterHotKey(this.Handle, Constants.HOTKEY_ID);
             base.OnFormClosing(e);
         }
 
@@ -94,14 +91,19 @@ namespace WebSearch
                 e.SuppressKeyPress = true;
 
                 string searchValue = MainTextBox.Text;
-                if (!string.IsNullOrWhiteSpace(searchValue))
+                if (searchValue == "@all")
+                {
+                    dropDownForm.ShowAllTabs(openTabs);
+                    dropDownForm.Show();
+                }
+                else if (!string.IsNullOrWhiteSpace(searchValue))
                 {
                     BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue);
                     MainTextBox.Text = "";
+                    WindowState = FormWindowState.Minimized;
+                    this.Hide();
+                    dropDownForm.Hide();
                 }
-
-                WindowState = FormWindowState.Minimized;
-                this.Hide();
             }
             else if (e.KeyCode == Keys.Escape)
             {
@@ -109,23 +111,39 @@ namespace WebSearch
 
                 WindowState = FormWindowState.Minimized;
                 this.Hide();
+                dropDownForm.Hide();
+            }
+
+            if (dropDownForm.Visible)
+            {
+                if (e.KeyCode == Keys.Up || e.KeyCode == Keys.Down)
+                {
+                    e.SuppressKeyPress = true;
+                    dropDownForm.MoveSelection(e.KeyCode == Keys.Down);
+                }
             }
         }
 
-        private void MainTextBox_TextChanged(object sender, EventArgs e)
+        private void MainTextBox_TextChanged(object? sender, EventArgs? e)
         {
             string query = MainTextBox.Text ?? "";
-            
+
             var pos = this.PointToScreen(new System.Drawing.Point(0, MainTextBox.Height));
             dropDownForm.Location = pos;
             dropDownForm.ShowInTaskbar = false;
             dropDownForm.TopMost = true;
             dropDownForm.Width = this.Width;
 
-            // Filter tabs by query, case-insensitive; hide dropdown if no matches or empty input
+            var combinedList = openTabs
+                .Concat(bookmarks)
+                .Concat(history)
+                .Concat(frequentSites)
+                .ToList();
+
+
             var filtered = string.IsNullOrWhiteSpace(query)
                 ? new List<TabInfo>()
-                : openTabs.Where(t =>
+                : combinedList.Where(t =>
                     (t.Title ?? "").Contains(query, StringComparison.OrdinalIgnoreCase) ||
                     (t.Url ?? "").Contains(query, StringComparison.OrdinalIgnoreCase))
                     .ToList();
