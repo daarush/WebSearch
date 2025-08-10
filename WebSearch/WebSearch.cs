@@ -12,6 +12,7 @@ namespace WebSearch
         public static List<BookmarkItem> bookmarks = new List<BookmarkItem>();
         public static List<HistoryItem> history = new List<HistoryItem>();
         public static List<FrequentSitesItem> frequentSites = new List<FrequentSitesItem>();
+        public static List<RecentItem> recentSites = new List<RecentItem>();
 
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
@@ -171,6 +172,10 @@ namespace WebSearch
                     case "@f":
                         sourceList = frequentSites.Cast<TabInfo>().ToList();
                         break;
+                     case "@r":
+                        Logger.Print("Recent sites: " + recentSites.Count);
+                        sourceList = recentSites.Cast<TabInfo>().ToList();
+                        break;
                     default:
                         sourceList = null;
                         break;
@@ -181,6 +186,7 @@ namespace WebSearch
             {
                 sourceList = openTabs
                     .Cast<TabInfo>()
+                    .Concat(recentSites)
                     .Concat(bookmarks)
                     .Concat(history)
                     .Concat(frequentSites)
@@ -207,7 +213,6 @@ namespace WebSearch
             }
         }
 
-
         private void DropDownForm_SelectedTab(object? sender, TabInfo selected)
         {
             if (selected == null) return;
@@ -228,5 +233,16 @@ namespace WebSearch
                 Logger.Print("Failed to open URL: " + ex.ToString());
             }
         }
+
+        public static void AddToRecentSites(RecentItem item)
+        {
+            recentSites.RemoveAll(x => string.Equals(x.Url, item.Url, StringComparison.OrdinalIgnoreCase));
+            recentSites.Insert(0, item);
+            if (recentSites.Count > Constants.MaxRecentItems)
+            {
+                recentSites = recentSites.Take(Constants.MaxRecentItems).ToList();
+            }
+        }
+
     }
 }

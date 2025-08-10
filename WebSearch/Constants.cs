@@ -26,5 +26,9 @@
         public const string GoogleSearchUrl = "https://google.com/search?q=";
 
         public const string ErrorMessageFormat = "ERROR: An exception of type: {0} occurred in method: {1} in the following module: {2}";
+
+        // Recent Items
+        public const int MaxRecentItems = 10;
+        public const int MaxFrequentItems = 25;
     }
 }

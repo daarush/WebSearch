@@ -48,6 +48,12 @@ namespace WebSearch
 
         public static void searchInANewTab(string defaultBrowserURL, string searchValue)
         {
+            WebSearch.recentSites.Add(new RecentItem
+            {
+                Title = searchValue,
+                Url = $"{Constants.GoogleSearchUrl}{Uri.EscapeDataString(searchValue)}"
+            });
+
             var psi = new ProcessStartInfo
             {
                 FileName = defaultBrowserURL,

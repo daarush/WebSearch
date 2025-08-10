@@ -57,6 +57,7 @@
                 .GroupBy(item => item.Url, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
                 .OrderByDescending(item =>
+                    item is RecentItem ? 5 :
                     item is OpenTab ? 4 :
                     item is FrequentSitesItem ? 3 :
                     item is HistoryItem ? 2 :
@@ -70,8 +71,9 @@
             int getFrequentCount = currentItems.OfType<FrequentSitesItem>().Count();
             int getBookmarkCount = currentItems.OfType<BookmarkItem>().Count();
             int getTabCount = currentItems.OfType<OpenTab>().Count();
+            int getRecentCount = currentItems.OfType<RecentItem>().Count();
 
-            TextBuffer = $"Total Items: {totalItemsFiltered}  [{getTabCount} Tabs, {getBookmarkCount} Bookmarks, {getHistoryCount} History Items, {getFrequentCount} Frequent Sites]";
+            TextBuffer = $"Total Items: {totalItemsFiltered}  [{getRecentCount} Recent Entries, {getTabCount} Open Tabs, {getBookmarkCount} Bookmarks, {getHistoryCount} History Items, {getFrequentCount} Frequent Sites]";
             SelectedIndexInfoLabel.Text = TextBuffer;
 
             listBoxSuggestions.BeginUpdate();
@@ -92,8 +94,30 @@
                 {
                     listBoxSuggestions.Items.Add(
                         string.IsNullOrWhiteSpace(frequent.Title)
-                        ? $"    ★ {frequent.Url}"
-                        : $"    ★ {frequent.Title} — {frequent.Url} (Visits: {frequent.VisitCount})"
+                        ? $"    ⚡ {frequent.Url}"
+                        : $"    ⚡ {frequent.Title} — {frequent.Url} (Visits: {frequent.VisitCount})"
+                    );
+                } else if (item is RecentItem recent)
+                {
+                    listBoxSuggestions.Items.Add(
+                        string.IsNullOrWhiteSpace(recent.Title)
+                        ? $"    🔥 {recent.Url}"
+                        : $"    🔥 {recent.Title} — {recent.Url}"
+                    );
+                } else if (item is OpenTab openTab)
+                {
+                    listBoxSuggestions.Items.Add(
+                        string.IsNullOrWhiteSpace(openTab.Title)
+                        ? $"    🗂️ {openTab.Url}"
+                        : $"    🗂️ {openTab.Title} — {openTab.Url}"
+                    );
+                }
+                else if (item is BookmarkItem bookmark)
+                {
+                    listBoxSuggestions.Items.Add(
+                        string.IsNullOrWhiteSpace(bookmark.Title)
+                        ? $"    ★ {bookmark.Url}"
+                        : $"    ★ {bookmark.Title} — {bookmark.Url}"
                     );
                 }
                 else
@@ -155,6 +179,9 @@
                     case OpenTab o:
                         outputString = "Opened Tab";
                         break;
+                    case RecentItem r:
+                        outputString = "Recent Entry";
+                        break;
                     default:
                         outputString = "Unknown Type";
                         break;
@@ -187,6 +214,12 @@
 
         private void CommitSelection()
         {
+            WebSearch.recentSites.Add(new RecentItem
+            {
+                Title = currentItems[listBoxSuggestions.SelectedIndex].Title,
+                Url = currentItems[listBoxSuggestions.SelectedIndex].Url
+            });
+
             if (listBoxSuggestions.SelectedIndex >= 0 && listBoxSuggestions.SelectedIndex < currentItems.Count)
             {
                 var selected = currentItems[listBoxSuggestions.SelectedIndex];

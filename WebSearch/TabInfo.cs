@@ -21,4 +21,7 @@
     {
         public int VisitCount { get; set; }
     }
+
+    public class RecentItem : TabInfo
+    { }
 }
