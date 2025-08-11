@@ -1,12 +1,21 @@
-﻿namespace WebSearch
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace WebSearch
 {
     public partial class DropDownForm : Form
     {
         private List<TabInfo> currentItems = new();
+        private List<DisplayItem> displayItems = new();
 
         public event EventHandler<TabInfo>? SelectedTab;
         private string TextBuffer = string.Empty;
-        
+
+        private record DisplayItem(string Text, TabInfo? Info, bool IsWebSearch = false);
+
         protected override CreateParams CreateParams
         {
             get
@@ -53,6 +62,7 @@
 
         public void UpdateSuggestions(IEnumerable<TabInfo> suggestions)
         {
+            // de-duplicate + sort
             currentItems = suggestions
                 .GroupBy(item => item.Url, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
@@ -76,63 +86,62 @@
             TextBuffer = $"Total Items: {totalItemsFiltered}  [{getRecentCount} Recent Entries, {getTabCount} Open Tabs, {getBookmarkCount} Bookmarks, {getHistoryCount} History Items, {getFrequentCount} Frequent Sites]";
             SelectedIndexInfoLabel.Text = TextBuffer;
 
-            listBoxSuggestions.BeginUpdate();
-            listBoxSuggestions.Items.Clear();
-
+            // build displayItems (keeps mapping safe)
+            displayItems = new List<DisplayItem>(currentItems.Count + 1);
             foreach (var item in currentItems)
             {
+                string text;
+                switch (item)
+                {
+                    case HistoryItem historyItem:
+                        text = string.IsNullOrWhiteSpace(historyItem.Title)
+                            ? $"     [{historyItem.VisitDate:yyyy-MM-dd HH:mm}]  {historyItem.Url}"
+                            : $"     [{historyItem.VisitDate:yyyy-MM-dd HH:mm}]  {historyItem.Title}    —    {historyItem.Url}";
+                        break;
+                    case FrequentSitesItem frequent:
+                        text = string.IsNullOrWhiteSpace(frequent.Title)
+                            ? $"    ⚡ {frequent.Url}"
+                            : $"    ⚡ {frequent.Title} — {frequent.Url} (Visits: {frequent.VisitCount})";
+                        break;
+                    case RecentItem recent:
+                        text = string.IsNullOrWhiteSpace(recent.Title)
+                            ? $"    🔥 {recent.Url}"
+                            : $"    🔥 {recent.Title} — {recent.Url}";
+                        break;
+                    case OpenTab openTab:
+                        text = string.IsNullOrWhiteSpace(openTab.Title)
+                            ? $"    🗂️ {openTab.Url}"
+                            : $"    🗂️ {openTab.Title} — {openTab.Url}";
+                        break;
+                    case BookmarkItem bookmark:
+                        text = string.IsNullOrWhiteSpace(bookmark.Title)
+                            ? $"    ★ {bookmark.Url}"
+                            : $"    ★ {bookmark.Title} — {bookmark.Url}";
+                        break;
+                    default:
+                        text = string.IsNullOrWhiteSpace(item.Title)
+                            ? item.Url
+                            : $"    {item.Title} — {item.Url}";
+                        break;
+                }
 
-                if (item is HistoryItem historyItem)
-                {
-                    listBoxSuggestions.Items.Add(
-                        string.IsNullOrWhiteSpace(historyItem.Title)
-                        ? $"     [{historyItem.VisitDate:yyyy-MM-dd HH:mm}]  {historyItem.Url}"
-                        : $"     [{historyItem.VisitDate:yyyy-MM-dd HH:mm}]  {historyItem.Title}    —    {historyItem.Url}"
-                    );
-                }
-                else if (item is FrequentSitesItem frequent)
-                {
-                    listBoxSuggestions.Items.Add(
-                        string.IsNullOrWhiteSpace(frequent.Title)
-                        ? $"    ⚡ {frequent.Url}"
-                        : $"    ⚡ {frequent.Title} — {frequent.Url} (Visits: {frequent.VisitCount})"
-                    );
-                } else if (item is RecentItem recent)
-                {
-                    listBoxSuggestions.Items.Add(
-                        string.IsNullOrWhiteSpace(recent.Title)
-                        ? $"    🔥 {recent.Url}"
-                        : $"    🔥 {recent.Title} — {recent.Url}"
-                    );
-                } else if (item is OpenTab openTab)
-                {
-                    listBoxSuggestions.Items.Add(
-                        string.IsNullOrWhiteSpace(openTab.Title)
-                        ? $"    🗂️ {openTab.Url}"
-                        : $"    🗂️ {openTab.Title} — {openTab.Url}"
-                    );
-                }
-                else if (item is BookmarkItem bookmark)
-                {
-                    listBoxSuggestions.Items.Add(
-                        string.IsNullOrWhiteSpace(bookmark.Title)
-                        ? $"    ★ {bookmark.Url}"
-                        : $"    ★ {bookmark.Title} — {bookmark.Url}"
-                    );
-                }
-                else
-                {
-                    listBoxSuggestions.Items.Add(
-                        string.IsNullOrWhiteSpace(item.Title)
-                        ? item.Url
-                        : $"    {item.Title} — {item.Url}"
-                    );
-                }
+                displayItems.Add(new DisplayItem(text, item, false));
             }
 
+            // Optionally insert the "Web Search" special entry at a stable index
+            if (displayItems.Count > 1)
+            {
+                int insertIndex = Math.Clamp(Constants.SearchWebIndexPosition, 0, displayItems.Count);
+                displayItems.Insert(insertIndex, new DisplayItem("    🌐  Web Search", null, true));
+            }
+
+            // push to ListBox
+            listBoxSuggestions.BeginUpdate();
+            listBoxSuggestions.Items.Clear();
+            listBoxSuggestions.Items.AddRange(displayItems.Select(di => (object)di.Text).ToArray());
             listBoxSuggestions.EndUpdate();
 
-            if (currentItems.Count > 0)
+            if (displayItems.Count > 0)
             {
                 if (!Visible) Show();
                 listBoxSuggestions.SelectedIndex = -1;
@@ -148,7 +157,6 @@
             if (listBoxSuggestions.Items.Count == 0) return;
 
             int newIndex = listBoxSuggestions.SelectedIndex;
-
             if (moveDown)
                 newIndex = Math.Min(newIndex + 1, listBoxSuggestions.Items.Count - 1);
             else
@@ -160,33 +168,28 @@
 
         private void UpdateInfo(object? sender, EventArgs e)
         {
-            if (listBoxSuggestions.SelectedIndex >= 0 && listBoxSuggestions.SelectedIndex < currentItems.Count)
+            int idx = listBoxSuggestions.SelectedIndex;
+            if (idx >= 0 && idx < displayItems.Count)
             {
-                var selectedItem = currentItems[listBoxSuggestions.SelectedIndex];
-                var outputString = "";
-
-                switch (selectedItem)
+                var di = displayItems[idx];
+                if (di.IsWebSearch)
                 {
-                    case BookmarkItem b:
-                        outputString = "Bookmark";
-                        break;
-                    case HistoryItem h:
-                        outputString = "History";
-                        break;
-                    case FrequentSitesItem f:
-                        outputString = "Frequent Site";
-                        break;
-                    case OpenTab o:
-                        outputString = "Opened Tab";
-                        break;
-                    case RecentItem r:
-                        outputString = "Recent Entry";
-                        break;
-                    default:
-                        outputString = "Unknown Type";
-                        break;
-                } 
-                    SelectedIndexInfoLabel.Text = $"Type: {outputString}    |   {TextBuffer}";
+                    SelectedIndexInfoLabel.Text = $"Type: Web Search    |   {TextBuffer}";
+                    return;
+                }
+
+                var selectedItem = di.Info!;
+                var outputString = selectedItem switch
+                {
+                    BookmarkItem _ => "Bookmark",
+                    HistoryItem _ => "History",
+                    FrequentSitesItem _ => "Frequent Site",
+                    OpenTab _ => "Opened Tab",
+                    RecentItem _ => "Recent Entry",
+                    _ => "Unknown Type"
+                };
+
+                SelectedIndexInfoLabel.Text = $"Type: {outputString}    |   {TextBuffer}";
             }
             else
             {
@@ -194,10 +197,7 @@
             }
         }
 
-        private void ListBoxSuggestions_DoubleClick(object? sender, EventArgs e)
-        {
-            CommitSelection();
-        }
+        private void ListBoxSuggestions_DoubleClick(object? sender, EventArgs e) => CommitSelection();
 
         private void ListBoxSuggestions_KeyDown(object? sender, KeyEventArgs e)
         {
@@ -214,10 +214,26 @@
 
         private void CommitSelection()
         {
-            if (listBoxSuggestions.SelectedIndex < 0 || listBoxSuggestions.SelectedIndex >= currentItems.Count)
-                return;
+            int selectedIndex = listBoxSuggestions.SelectedIndex;
+            if (selectedIndex < 0 || selectedIndex >= displayItems.Count) return;
 
-            var selected = currentItems[listBoxSuggestions.SelectedIndex];
+            var di = displayItems[selectedIndex];
+            if (di.IsWebSearch)
+            {
+                if (this.Owner is WebSearch webSearchForm)
+                {
+                    string val = webSearchForm.GetMainTextBoxText();
+                    if (!string.IsNullOrWhiteSpace(val))
+
+                        {
+                            BrowserHelper.searchInANewTab(BrowserHelper.GetSystemDefaultBrowser(), val, false);
+                        this.Hide();
+                    }
+                }
+                return;
+            }
+
+            var selected = di.Info!;
             RecentItemsHandler.AddToRecentSites(new RecentItem
             {
                 Title = selected.Title,
@@ -226,6 +242,5 @@
 
             SelectedTab?.Invoke(this, selected);
         }
-
     }
 }

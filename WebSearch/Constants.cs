@@ -19,6 +19,8 @@
 
         public const double FormOpacity = 0.95;
 
+        public const int SearchWebIndexPosition = 1;
+
         //BrowserHelper constants
         public const string RegKeyUserChoice = @"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.htm\UserChoice";
         public const string RegKeyShellOpenCommand = @"shell\open\command";

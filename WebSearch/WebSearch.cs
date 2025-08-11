@@ -68,6 +68,11 @@ namespace WebSearch
             frequentSites = FrequentSitesHelper.GetFrequentSites();
         }
 
+        public string GetMainTextBoxText()
+        {
+            return MainTextBox.Text;
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
             Logger.Print("APP Started!");
