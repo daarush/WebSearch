@@ -77,6 +77,7 @@ namespace WebSearch
         public bool IncludeBookmarks { get; set; } = true;
         public bool IncludeHistory { get; set; } = true;
         public SearchOrder SearchOrder { get; set; } = new SearchOrder();
+        public bool LaunchOnStartup { get; set; } = true;
     }
 
     public class SearchOrder
