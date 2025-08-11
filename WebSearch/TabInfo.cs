@@ -7,10 +7,10 @@
     }
 
     public class OpenTab : TabInfo
-    {}
+    { }
 
     public class BookmarkItem : TabInfo
-    {}
+    { }
 
     public class HistoryItem : TabInfo
     {
@@ -23,7 +23,7 @@
     }
 
     public class RecentItem : TabInfo
-    { 
+    {
         public DateTime LastAccessed { get; set; }
     }
 }

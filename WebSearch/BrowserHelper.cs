@@ -65,7 +65,8 @@ namespace WebSearch
                     UseShellExecute = true
                 };
 
-            } else
+            }
+            else
             {
                 psi = new ProcessStartInfo
                 {

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+﻿using System.Text.Json;
 
 namespace WebSearch
 {
@@ -38,7 +33,7 @@ namespace WebSearch
                 {
                     Logger.Print("Settings file not found, creating default settings.");
                     var defaults = new Settings();
-                    SaveSettings(defaults);        
+                    SaveSettings(defaults);
                     return defaults;
                 }
 

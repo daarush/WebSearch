@@ -35,11 +35,6 @@ namespace WebSearch
             });
             trayIcon.ContextMenuStrip = trayMenu;
 
-            // Optionally: Hide the form on startup if you want it hidden
-            // mainForm.WindowState = FormWindowState.Minimized;
-            // mainForm.ShowInTaskbar = false;
-            // mainForm.Hide();
-
             // Run the app with the main form and tray icon alive
             Application.Run(mainForm);
 

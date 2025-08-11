@@ -1,9 +1,4 @@
 ﻿using Microsoft.Data.Sqlite;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WebSearch
 {
@@ -30,12 +25,12 @@ namespace WebSearch
                 connection.Open();
 
                 string query = @$"
-                    SELECT url, title, visit_count
-                    FROM moz_places
-                    WHERE visit_count > 0
-                    ORDER BY visit_count DESC
-                    LIMIT {SettingsHandler.CurrentSettings.MaxFrequentItems};
-                ";
+                        SELECT url, title, visit_count
+                        FROM moz_places
+                        WHERE visit_count > 0
+                        ORDER BY visit_count DESC
+                        LIMIT {SettingsHandler.CurrentSettings.MaxFrequentItems};
+                    ";
 
                 using var cmd = new SqliteCommand(query, connection);
                 using var reader = cmd.ExecuteReader();

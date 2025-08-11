@@ -6,23 +6,26 @@ namespace WebSearch
 {
     public partial class WebSearch : Form
     {
-        private Settings currentSettings;
-
+        // state
+        private Settings? currentSettings;
         private string defaultBrowserURL = string.Empty;
         private DropDownForm dropDownForm;
 
+        // shared lists
         public static List<OpenTab> openTabs = new List<OpenTab>();
         public static List<BookmarkItem> bookmarks = new List<BookmarkItem>();
         public static List<HistoryItem> history = new List<HistoryItem>();
         public static List<FrequentSitesItem> frequentSites = new List<FrequentSitesItem>();
         public static List<RecentItem> recentSites = new List<RecentItem>();
 
+        // native hotkey interop
         [DllImport("user32.dll")]
         private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
         [DllImport("user32.dll")]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+        // window params override
         protected override CreateParams CreateParams
         {
             get
@@ -34,20 +37,15 @@ namespace WebSearch
             }
         }
 
+        // constructor
         public WebSearch()
         {
             InitializeComponent();
 
-            //currentSettings = SettingsHandler.LoadSettings();
-            //if (currentSettings == null)
-            //{
-            //    currentSettings = new Settings();
-            //    SettingsHandler.SaveSettings(currentSettings);
-            //}
-
-
-            dropDownForm = new DropDownForm();
-            dropDownForm.Owner = this;
+            dropDownForm = new DropDownForm
+            {
+                Owner = this
+            };
 
             this.Deactivate += async (s, e) =>
             {
@@ -59,7 +57,6 @@ namespace WebSearch
 
                 if (!mainHasFocus && !dropdownHasFocus)
                 {
-                    // hide both
                     dropDownForm?.Hide();
                     this.Hide();
                 }
@@ -68,12 +65,55 @@ namespace WebSearch
             dropDownForm.SelectedTab += DropDownForm_SelectedTab;
         }
 
+        // lifecycle: load
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            Logger.Print("APP Started!");
+            ShowInTaskbar = false;
+
+            defaultBrowserURL = BrowserHelper.GetSystemDefaultBrowser();
+            bool registered = RegisterHotKey(this.Handle, Constants.HOTKEY_ID, Constants.MOD_CONTROL, Constants.VK_SPACE);
+            if (!registered)
+                Logger.Print("Failed to register hotkey");
+
+            WindowState = FormWindowState.Minimized;
+            this.Hide();
+
+            UpdateLists();
+        }
+
+        // lifecycle: message loop for hotkey
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == Constants.WM_HOTKEY && m.WParam.ToInt32() == Constants.HOTKEY_ID)
+            {
+                this.Show();
+                UpdateLists();
+                WindowState = FormWindowState.Normal;
+                Activate();
+                MainTextBox.Focus();
+
+                MainTextBox_TextChanged(null, null);
+            }
+
+            base.WndProc(ref m);
+        }
+
+        // lifecycle: closing
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            UnregisterHotKey(this.Handle, Constants.HOTKEY_ID);
+            base.OnFormClosing(e);
+        }
+
+        // data loaders
         private void UpdateLists()
         {
             if (currentSettings == null)
             {
                 currentSettings = SettingsHandler.CurrentSettings;
             }
+
             if (currentSettings.IncludeRecentItems)
                 recentSites = RecentItemsHandler.LoadRecentItemsJSONFile().Cast<RecentItem>().ToList();
             else
@@ -100,50 +140,34 @@ namespace WebSearch
                 frequentSites = new List<FrequentSitesItem>();
         }
 
+        // helpers
+        public string GetMainTextBoxText() => MainTextBox.Text;
 
-
-        public string GetMainTextBoxText()
+        bool IsValidUrl(string input)
         {
-            return MainTextBox.Text;
-        }
+            if (string.IsNullOrWhiteSpace(input)) return false;
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            Logger.Print("APP Started!");
-            ShowInTaskbar = false;
-
-            defaultBrowserURL = BrowserHelper.GetSystemDefaultBrowser();
-            bool registered = RegisterHotKey(this.Handle, Constants.HOTKEY_ID, Constants.MOD_CONTROL, Constants.VK_SPACE);
-            if (!registered)
-                Logger.Print("Failed to register hotkey");
-
-            WindowState = FormWindowState.Minimized;
-            this.Hide();
-
-            UpdateLists();
-        }
-
-        protected override void WndProc(ref Message m)
-        {
-            if (m.Msg == Constants.WM_HOTKEY && m.WParam.ToInt32() == Constants.HOTKEY_ID)
+            if (Uri.TryCreate(input, UriKind.Absolute, out var uriResult)
+                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
             {
-                this.Show();
-                UpdateLists();
-                WindowState = FormWindowState.Normal;
-                Activate();
-                MainTextBox.Focus();
-
-                MainTextBox_TextChanged(null, null);
+                return true;
             }
-            base.WndProc(ref m);
+
+            if (Uri.TryCreate("https://" + input, UriKind.Absolute, out uriResult)
+                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
+            {
+                var host = uriResult.Host ?? "";
+                if (host.Contains('.') || host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                    IPAddress.TryParse(host, out _))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
-            UnregisterHotKey(this.Handle, Constants.HOTKEY_ID);
-            base.OnFormClosing(e);
-        }
-
+        // event handlers
         private void MainTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -151,24 +175,32 @@ namespace WebSearch
                 e.SuppressKeyPress = true;
 
                 string searchValue = MainTextBox.Text.Trim();
-                if (!string.IsNullOrWhiteSpace(searchValue))
+
+                if (dropDownForm.GetSelectedIndex() < 0)
                 {
-                    if (IsValidUrl(searchValue))
+                    dropDownForm.CommitFirstIndex();
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(searchValue))
                     {
-                        if (!searchValue.StartsWith("http://") && !searchValue.StartsWith("https://"))
-                            searchValue = "https://" + searchValue;
+                        if (IsValidUrl(searchValue))
+                        {
+                            if (!searchValue.StartsWith("http://") && !searchValue.StartsWith("https://"))
+                                searchValue = "https://" + searchValue;
 
-                        BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue, true);
-                    }
-                    else
-                    {
-                        BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue, false);
-                    }
+                            BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue, true);
+                        }
+                        else
+                        {
+                            BrowserHelper.searchInANewTab(defaultBrowserURL, searchValue, false);
+                        }
 
-                    MainTextBox.Text = "";
-                    WindowState = FormWindowState.Minimized;
-                    this.Hide();
-                    dropDownForm.Hide();
+                        MainTextBox.Text = "";
+                        WindowState = FormWindowState.Minimized;
+                        this.Hide();
+                        dropDownForm.Hide();
+                    }
                 }
             }
             else if (e.KeyCode == Keys.Escape)
@@ -190,35 +222,6 @@ namespace WebSearch
             }
         }
 
-        bool IsValidUrl(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input)) return false;
-
-            // absolute url already with scheme
-            if (Uri.TryCreate(input, UriKind.Absolute, out var uriResult)
-                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
-            {
-                return true;
-            }
-
-            // try adding https:// then validate host
-            if (Uri.TryCreate("https://" + input, UriKind.Absolute, out uriResult)
-                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
-            {
-                var host = uriResult.Host ?? "";
-                // accept if host contains a dot (example.com), or is localhost, or is an IP
-                if (host.Contains('.') || host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-                    IPAddress.TryParse(host, out _))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-
-
         private void MainTextBox_TextChanged(object? sender, EventArgs? e)
         {
             string query = MainTextBox.Text ?? "";
@@ -231,6 +234,9 @@ namespace WebSearch
 
             List<TabInfo>? sourceList = null;
             string filterTerm = query;
+
+            // keep existing behavior: reorder frequentSites in-place
+            frequentSites = frequentSites.OrderByDescending(x => x.VisitCount).ToList();
 
             // Check if query starts with '@' and has a space
             if (query.StartsWith("@") && query.Contains(' '))
@@ -263,7 +269,7 @@ namespace WebSearch
                 }
             }
 
-                if (sourceList == null)
+            if (sourceList == null)
             {
                 sourceList = openTabs
                     .Cast<TabInfo>()
