@@ -214,17 +214,18 @@
 
         private void CommitSelection()
         {
-            WebSearch.recentSites.Add(new RecentItem
+            if (listBoxSuggestions.SelectedIndex < 0 || listBoxSuggestions.SelectedIndex >= currentItems.Count)
+                return;
+
+            var selected = currentItems[listBoxSuggestions.SelectedIndex];
+            RecentItemsHandler.AddToRecentSites(new RecentItem
             {
-                Title = currentItems[listBoxSuggestions.SelectedIndex].Title,
-                Url = currentItems[listBoxSuggestions.SelectedIndex].Url
+                Title = selected.Title,
+                Url = selected.Url
             });
 
-            if (listBoxSuggestions.SelectedIndex >= 0 && listBoxSuggestions.SelectedIndex < currentItems.Count)
-            {
-                var selected = currentItems[listBoxSuggestions.SelectedIndex];
-                SelectedTab?.Invoke(this, selected);
-            }
+            SelectedTab?.Invoke(this, selected);
         }
+
     }
 }

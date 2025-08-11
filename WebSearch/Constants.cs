@@ -28,7 +28,10 @@
         public const string ErrorMessageFormat = "ERROR: An exception of type: {0} occurred in method: {1} in the following module: {2}";
 
         // Recent Items
-        public const int MaxRecentItems = 10;
-        public const int MaxFrequentItems = 25;
+        public const int MaxRecentItems = 5;
+        public const int MaxFrequentItems = 50;
+
+        public static readonly string APP_DATA_FOLDER = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WebSearch");
+        public const string RECENT_ITEMS_FILE = "recentItems.json";
     }
 }

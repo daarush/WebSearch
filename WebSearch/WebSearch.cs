@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Runtime.InteropServices;
 
 namespace WebSearch
@@ -60,6 +61,7 @@ namespace WebSearch
 
         private void UpdateLists()
         {
+            recentSites = RecentItemsHandler.LoadRecentItemsJSONFile().Cast<RecentItem>().ToList();
             openTabs = FirefoxHelper.GetFirefoxOpenTabs();
             bookmarks = BookmarkHelper.GetBookmarks();
             history = HistoryHelper.GetHistory();
@@ -151,20 +153,31 @@ namespace WebSearch
 
         bool IsValidUrl(string input)
         {
+            if (string.IsNullOrWhiteSpace(input)) return false;
+
+            // absolute url already with scheme
             if (Uri.TryCreate(input, UriKind.Absolute, out var uriResult)
                 && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
             {
                 return true;
             }
 
+            // try adding https:// then validate host
             if (Uri.TryCreate("https://" + input, UriKind.Absolute, out uriResult)
                 && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps))
             {
-                return true;
+                var host = uriResult.Host ?? "";
+                // accept if host contains a dot (example.com), or is localhost, or is an IP
+                if (host.Contains('.') || host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                    IPAddress.TryParse(host, out _))
+                {
+                    return true;
+                }
             }
 
             return false;
         }
+
 
 
         private void MainTextBox_TextChanged(object? sender, EventArgs? e)
@@ -262,16 +275,5 @@ namespace WebSearch
                 Logger.Print("Failed to open URL: " + ex.ToString());
             }
         }
-
-        public static void AddToRecentSites(RecentItem item)
-        {
-            recentSites.RemoveAll(x => string.Equals(x.Url, item.Url, StringComparison.OrdinalIgnoreCase));
-            recentSites.Insert(0, item);
-            if (recentSites.Count > Constants.MaxRecentItems)
-            {
-                recentSites = recentSites.Take(Constants.MaxRecentItems).ToList();
-            }
-        }
-
     }
 }

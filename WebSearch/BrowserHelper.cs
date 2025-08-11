@@ -50,10 +50,10 @@ namespace WebSearch
         {
             var psi = new ProcessStartInfo();
 
-            WebSearch.recentSites.Add(new RecentItem
+            RecentItemsHandler.AddToRecentSites(new RecentItem
             {
                 Title = searchValue,
-                Url = $"{Constants.GoogleSearchUrl}{Uri.EscapeDataString(searchValue)}"
+                Url = website ? searchValue : $"{Constants.GoogleSearchUrl}{Uri.EscapeDataString(searchValue)}"
             });
 
             if (website)
