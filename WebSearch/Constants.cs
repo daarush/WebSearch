@@ -39,5 +39,6 @@
         public static readonly string AppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WebSearch");
         public const string RecentItemsFileName = "recentItems.json";
         public const string AppIconFileName = "websearch-icon.ico";
+        public const string LoggerFileName = "log.txt";
     }
 }
