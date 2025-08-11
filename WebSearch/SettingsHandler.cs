@@ -81,5 +81,15 @@ namespace WebSearch
         public bool IncludeFrequentItems { get; set; } = true;
         public bool IncludeBookmarks { get; set; } = true;
         public bool IncludeHistory { get; set; } = true;
+        public SearchOrder SearchOrder { get; set; } = new SearchOrder();
+    }
+
+    public class SearchOrder
+    {
+        public int OpenTabs { get; set; } = 1;
+        public int RecentItems { get; set; } = 2;
+        public int FrequentSites { get; set; } = 3;
+        public int Bookmarks { get; set; } = 4;
+        public int History { get; set; } = 5;
     }
 }

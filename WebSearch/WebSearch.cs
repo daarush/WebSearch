@@ -68,17 +68,39 @@ namespace WebSearch
             dropDownForm.SelectedTab += DropDownForm_SelectedTab;
         }
 
-
         private void UpdateLists()
         {
-            recentSites = RecentItemsHandler.LoadRecentItemsJSONFile().Cast<RecentItem>().ToList();
-            openTabs = FirefoxHelper.GetFirefoxOpenTabs();
-            bookmarks = BookmarkHelper.GetBookmarks();
-            history = HistoryHelper.GetHistory();
-            frequentSites = FrequentSitesHelper.GetFrequentSites();
+            if (currentSettings == null)
+            {
+                currentSettings = SettingsHandler.CurrentSettings;
+            }
+            if (currentSettings.IncludeRecentItems)
+                recentSites = RecentItemsHandler.LoadRecentItemsJSONFile().Cast<RecentItem>().ToList();
+            else
+                recentSites = new List<RecentItem>();
 
-            Logger.Print(SettingsHandler.CurrentSettings.MaxRecentItems.ToString());
+            if (currentSettings.IncludeOpenTabs)
+                openTabs = FirefoxHelper.GetFirefoxOpenTabs();
+            else
+                openTabs = new List<OpenTab>();
+
+            if (currentSettings.IncludeBookmarks)
+                bookmarks = BookmarkHelper.GetBookmarks();
+            else
+                bookmarks = new List<BookmarkItem>();
+
+            if (currentSettings.IncludeHistory)
+                history = HistoryHelper.GetHistory();
+            else
+                history = new List<HistoryItem>();
+
+            if (currentSettings.IncludeFrequentItems)
+                frequentSites = FrequentSitesHelper.GetFrequentSites();
+            else
+                frequentSites = new List<FrequentSitesItem>();
         }
+
+
 
         public string GetMainTextBoxText()
         {

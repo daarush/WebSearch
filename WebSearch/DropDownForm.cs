@@ -66,15 +66,16 @@ namespace WebSearch
         public void UpdateSuggestions(IEnumerable<TabInfo> suggestions)
         {
             // de-duplicate + sort
+            var order = SettingsHandler.CurrentSettings.SearchOrder;
             currentItems = suggestions
                 .GroupBy(item => item.Url, StringComparer.OrdinalIgnoreCase)
                 .Select(g => g.First())
-                .OrderByDescending(item =>
-                    item is RecentItem ? 5 :
-                    item is OpenTab ? 4 :
-                    item is FrequentSitesItem ? 3 :
-                    item is HistoryItem ? 2 :
-                    item is BookmarkItem ? 1 : 0
+                .OrderBy(item =>
+                    item is OpenTab ? order.OpenTabs :
+                    item is RecentItem ? order.RecentItems :
+                    item is FrequentSitesItem ? order.FrequentSites :
+                    item is BookmarkItem ? order.Bookmarks :
+                    item is HistoryItem ? order.History : 0
                 )
                 .ThenBy(item => item.Title)
                 .ToList();
