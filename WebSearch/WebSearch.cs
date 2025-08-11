@@ -6,6 +6,8 @@ namespace WebSearch
 {
     public partial class WebSearch : Form
     {
+        private Settings currentSettings;
+
         private string defaultBrowserURL = string.Empty;
         private DropDownForm dropDownForm;
 
@@ -35,6 +37,14 @@ namespace WebSearch
         public WebSearch()
         {
             InitializeComponent();
+
+            //currentSettings = SettingsHandler.LoadSettings();
+            //if (currentSettings == null)
+            //{
+            //    currentSettings = new Settings();
+            //    SettingsHandler.SaveSettings(currentSettings);
+            //}
+
 
             dropDownForm = new DropDownForm();
             dropDownForm.Owner = this;
@@ -66,6 +76,8 @@ namespace WebSearch
             bookmarks = BookmarkHelper.GetBookmarks();
             history = HistoryHelper.GetHistory();
             frequentSites = FrequentSitesHelper.GetFrequentSites();
+
+            Logger.Print(SettingsHandler.CurrentSettings.MaxRecentItems.ToString());
         }
 
         public string GetMainTextBoxText()
@@ -79,7 +91,7 @@ namespace WebSearch
             ShowInTaskbar = false;
 
             defaultBrowserURL = BrowserHelper.GetSystemDefaultBrowser();
-            bool registered = RegisterHotKey(this.Handle, Constants.HOTKEY_ID, Constants.MOD_CONTROL, Constants.SPACE_BAR);
+            bool registered = RegisterHotKey(this.Handle, Constants.HOTKEY_ID, Constants.MOD_CONTROL, Constants.VK_SPACE);
             if (!registered)
                 Logger.Print("Failed to register hotkey");
 

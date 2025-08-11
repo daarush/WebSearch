@@ -2,38 +2,42 @@
 {
     public static class Constants
     {
-        // WebSearch constants
+        // Hotkey and Window constants
         public const uint MOD_CONTROL = 0x0002;
         public const uint WM_HOTKEY = 0x0312;
         public const int HOTKEY_ID = 1;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
-        public static readonly uint SPACE_BAR = (uint)Keys.Space;
+        public static readonly uint VK_SPACE = (uint)Keys.Space;
 
-        // DropDownForm constants
-        public static readonly Color BackgroundColor = Color.Black;
-        public static readonly Color ForegroundColor = Color.White;
-        public static readonly Color DarkPurple = Color.FromArgb(40, 0, 40);
+        // UI Colors
+        public static readonly Color ColorBackground = Color.Black;
+        public static readonly Color ColorForeground = Color.White;
+        public static readonly Color ColorDarkPurple = Color.FromArgb(40, 0, 40);
 
-        public static readonly Size DropDownSize = new Size(1025, 200);
-        public static readonly Point DropDownLocation = new Point(-3, 1);
+        // DropDownForm layout
+        public static readonly Size DropDownFormSize = new Size(1025, 200);
+        public static readonly Point DropDownFormLocation = new Point(-3, 1);
 
-        public const double FormOpacity = 0.95;
-
-        public const int SearchWebIndexPosition = 1;
-
-        //BrowserHelper constants
+        // BrowserHelper registry keys
         public const string RegKeyUserChoice = @"Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.htm\UserChoice";
         public const string RegKeyShellOpenCommand = @"shell\open\command";
 
+        // URLs
         public const string GoogleSearchUrl = "https://google.com/search?q=";
 
+        // Error formatting
         public const string ErrorMessageFormat = "ERROR: An exception of type: {0} occurred in method: {1} in the following module: {2}";
 
-        // Recent Items
-        public const int MaxRecentItems = 5;
-        public const int MaxFrequentItems = 50;
+        // Default settings values
+        public const int DefaultMaxRecentItems = 5;
+        public const int DefaultMaxFrequentItems = 100;
+        public const int DefaultMaxTotalItems = 1000;
+        public const double DefaultFormOpacity = 0.9;
+        public const int PositionOfWebSearchItem = 1;
 
-        public static readonly string APP_DATA_FOLDER = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WebSearch");
-        public const string RECENT_ITEMS_FILE = "recentItems.json";
+        // App data paths and files
+        public static readonly string AppDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WebSearch");
+        public const string RecentItemsFileName = "recentItems.json";
+        public const string AppIconFileName = "websearch-icon.ico";
     }
 }

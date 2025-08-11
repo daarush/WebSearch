@@ -9,22 +9,24 @@ namespace WebSearch
     public static class RecentItemsHandler
     {
         private static readonly object _fileLock = new();
-        private static readonly string _recentFilePath = Path.Combine(Constants.APP_DATA_FOLDER, Constants.RECENT_ITEMS_FILE);
+        private static readonly string _recentFilePath = Path.Combine(Constants.AppDataFolder, Constants.RecentItemsFileName);
 
         public static void AddToRecentSites(RecentItem item)
         {
-            // keep one source of truth (WebSearch.recentSites) updated first
+            item.LastAccessed = DateTime.UtcNow;
             WebSearch.recentSites.RemoveAll(x => string.Equals(x.Url, item.Url, StringComparison.OrdinalIgnoreCase));
             WebSearch.recentSites.Insert(0, item);
-            if (WebSearch.recentSites.Count > Constants.MaxRecentItems)
-                WebSearch.recentSites = WebSearch.recentSites.Take(Constants.MaxRecentItems).ToList();
+
+            if (WebSearch.recentSites.Count > SettingsHandler.CurrentSettings.MaxRecentItems)
+                WebSearch.recentSites = WebSearch.recentSites.Take(SettingsHandler.CurrentSettings.MaxRecentItems).ToList();
 
             UpdateRecentItemsJSONFile();
         }
 
+
         public static List<RecentItem> LoadRecentItemsJSONFile()
         {
-            Directory.CreateDirectory(Constants.APP_DATA_FOLDER);
+            Directory.CreateDirectory(Constants.AppDataFolder);
 
             lock (_fileLock)
             {
@@ -47,7 +49,7 @@ namespace WebSearch
 
         private static void UpdateRecentItemsJSONFile()
         {
-            Directory.CreateDirectory(Constants.APP_DATA_FOLDER);
+            Directory.CreateDirectory(Constants.AppDataFolder);
 
             lock (_fileLock)
             {

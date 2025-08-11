@@ -34,7 +34,7 @@ namespace WebSearch
                     FROM moz_places
                     WHERE visit_count > 0
                     ORDER BY visit_count DESC
-                    LIMIT {Constants.MaxFrequentItems};
+                    LIMIT {SettingsHandler.CurrentSettings.MaxFrequentItems};
                 ";
 
                 using var cmd = new SqliteCommand(query, connection);

@@ -16,7 +16,7 @@ namespace WebSearch
             // Create NotifyIcon and context menu
             var trayIcon = new NotifyIcon
             {
-                Icon = new System.Drawing.Icon(Path.Combine(Constants.APP_DATA_FOLDER, Constants.App_Icon_File))
+                Icon = new System.Drawing.Icon(Path.Combine(Constants.AppDataFolder, Constants.AppIconFileName))
 ,
                 Visible = true,
                 Text = "WebSearch"

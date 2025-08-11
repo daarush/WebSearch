@@ -23,5 +23,7 @@
     }
 
     public class RecentItem : TabInfo
-    { }
+    { 
+        public DateTime LastAccessed { get; set; }
+    }
 }

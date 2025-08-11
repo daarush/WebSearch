@@ -27,12 +27,12 @@ namespace WebSearch
                 using var connection = new SqliteConnection($"Data Source={tempDb};Mode=ReadOnly;Cache=Shared;");
                 connection.Open();
 
-                string query = @"
+                string query = @$"
                     SELECT p.url, p.title, h.visit_date
                     FROM moz_places p
                     JOIN moz_historyvisits h ON p.id = h.place_id
                     ORDER BY h.visit_date DESC
-                    LIMIT 1000;
+                    LIMIT {SettingsHandler.CurrentSettings.MaxTotalItems};
                 ";
 
                 using var cmd = new SqliteCommand(query, connection);

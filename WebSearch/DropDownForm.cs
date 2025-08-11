@@ -6,6 +6,9 @@ using System.Windows.Forms;
 
 namespace WebSearch
 {
+
+    
+
     public partial class DropDownForm : Form
     {
         private List<TabInfo> currentItems = new();
@@ -30,17 +33,17 @@ namespace WebSearch
         public DropDownForm()
         {
             InitializeComponent();
-            Opacity = Constants.FormOpacity;
+            Opacity = SettingsHandler.CurrentSettings.DropDownFormOpacity;
 
             listBoxSuggestions = new NoScrollBarListbox
             {
-                BackColor = Constants.BackgroundColor,
+                BackColor = Constants.ColorBackground,
                 BorderStyle = BorderStyle.None,
-                ForeColor = Constants.ForegroundColor,
+                ForeColor = Constants.ColorForeground,
                 FormattingEnabled = true,
-                Location = Constants.DropDownLocation,
+                Location = Constants.DropDownFormLocation,
                 Name = "listBoxSuggestions",
-                Size = Constants.DropDownSize,
+                Size = Constants.DropDownFormSize,
                 TabIndex = 0,
                 ScrollAlwaysVisible = true,
             };
@@ -50,9 +53,9 @@ namespace WebSearch
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.Manual;
 
-            ResultsPanel.BackColor = Constants.DarkPurple;
-            SelectedIndexInfoLabel.BackColor = Constants.DarkPurple;
-            SelectedIndexInfoLabel.ForeColor = Constants.ForegroundColor;
+            ResultsPanel.BackColor = Constants.ColorDarkPurple;
+            SelectedIndexInfoLabel.BackColor = Constants.ColorDarkPurple;
+            SelectedIndexInfoLabel.ForeColor = Constants.ColorForeground;
             SelectedIndexInfoLabel.TextAlign = ContentAlignment.MiddleCenter;
 
             listBoxSuggestions.DoubleClick += ListBoxSuggestions_DoubleClick;
@@ -131,7 +134,7 @@ namespace WebSearch
             // Optionally insert the "Web Search" special entry at a stable index
             if (displayItems.Count > 1)
             {
-                int insertIndex = Math.Clamp(Constants.SearchWebIndexPosition, 0, displayItems.Count);
+                int insertIndex = Math.Clamp(SettingsHandler.CurrentSettings.PositionOfWebSearchItem, 0, displayItems.Count);
                 displayItems.Insert(insertIndex, new DisplayItem("    🌐  Web Search", null, true));
             }
 
